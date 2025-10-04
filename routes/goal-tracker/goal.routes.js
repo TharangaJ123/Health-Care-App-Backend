@@ -9,7 +9,7 @@ router
     .get("/", goalController.getGoals);
 
 router
-    .get("/:id", goalController.getGoalsById)
+.get("/:id", goalController.getGoalsById)
     .patch("/:id", goalController.updateGoals)
     .delete("/:id", goalController.deleteGoals);
 
