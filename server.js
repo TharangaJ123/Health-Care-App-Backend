@@ -4,9 +4,13 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 require('dotenv').config();
 
+const goalRoutes = require("./routes/goalRoutes")
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use("/api/goals", goalRoutes);
 
 const testConnection = async () => {
   try {
