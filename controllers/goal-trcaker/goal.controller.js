@@ -1,5 +1,4 @@
-// controllers/userController.js
-const Goal = require("../models/Goal");
+const Goal = require("../../models/goal-tracker/goal.model");
 
 exports.createGoal = async (req, res) => {
   try {

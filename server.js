@@ -4,7 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 require('dotenv').config();
 
-const goalRoutes = require("./routes/goalRoutes")
+const goalRoutes = require("./routes/goal-tracker/goal.routes")
 
 const app = express();
 app.use(cors());
