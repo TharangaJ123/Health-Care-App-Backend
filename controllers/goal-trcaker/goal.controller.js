@@ -1,4 +1,5 @@
 const Goal = require("../../models/goal-tracker/goal.model");
+const { generateGoals } = require("../../gemini-ai/client");
 
 exports.createGoal = async (req, res) => {
   try {
@@ -6,6 +7,16 @@ exports.createGoal = async (req, res) => {
     res.status(201).json(goal);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getAISuggestions = async (req, res) => {
+  try {
+    const suggestions = await generateGoals(req.body || {});
+    return res.status(200).json({ suggestions });
+  } catch (err) {
+    console.error("getAISuggestions error:", err);
+    return res.status(500).json({ error: err.message });
   }
 };
 

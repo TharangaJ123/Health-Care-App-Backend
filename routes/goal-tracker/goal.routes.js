@@ -13,4 +13,6 @@ router
     .patch("/:id", goalController.updateGoals)
     .delete("/:id", goalController.deleteGoals);
 
+router.post("/generate-goals", goalController.getAISuggestions)    
+
 module.exports = router;
