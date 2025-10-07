@@ -1,12 +1,13 @@
-const { auth } = require('../../config/firebase');
-const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = require('firebase/auth');
+const { admin } = require('../config/firebase');
 const User = require('../models/userModel');
 
 // User Registration
 exports.register = async (req, res) => {
     try {
         const { email, password, name } = req.body;
-        
+
+        console.log('Registration attempt:', { email, name });
+
         // Input validation
         if (!email || !password) {
             return res.status(400).json({
@@ -33,48 +34,68 @@ exports.register = async (req, res) => {
         }
 
         // Check if user already exists in Firestore
+        console.log('Checking if user exists...');
         const existingUser = await User.findByEmail(email);
         if (existingUser) {
+            console.log('User already exists');
             return res.status(400).json({
                 success: false,
                 error: 'Email is already registered'
             });
         }
 
-        // Create user in Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const firebaseUser = userCredential.user;
-        
+        // Create user in Firebase Auth using admin SDK
+        console.log('Creating Firebase Auth user...');
+        const userRecord = await admin.auth().createUser({
+            email: email,
+            password: password,
+            displayName: name || '',
+            emailVerified: false
+        });
+        console.log('Firebase Auth user created:', userRecord.uid);
+
+        // Send email verification
+        console.log('📧 Sending email verification...');
+        try {
+            await admin.auth().generateEmailVerificationLink(email);
+            console.log('✅ Email verification link generated and sent');
+        } catch (emailError) {
+            console.error('❌ Email verification error:', emailError);
+            // Don't fail registration if email verification fails
+        }
+
         // Create user in Firestore
+        console.log('Creating Firestore user document...');
         const userData = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
+            uid: userRecord.uid,
+            email: userRecord.email,
             name: name || '',
-            emailVerified: firebaseUser.emailVerified
+            emailVerified: false, // Will be updated when user verifies email
+            verificationSent: true,
+            verificationSentAt: new Date()
         };
-        
+
         const user = await User.create(userData);
-        
-        // Generate token
-        const token = await firebaseUser.getIdToken();
-        
+        console.log('Firestore user document created:', user.id);
+
         res.status(201).json({
             success: true,
             user: {
                 uid: user.uid,
                 email: user.email,
                 name: user.name,
-                emailVerified: user.emailVerified
+                emailVerified: false,
+                verificationSent: true
             },
-            token
+            message: 'User registered successfully. Please check your email to verify your account.'
         });
-        
+
     } catch (error) {
         console.error('Registration error:', error);
-        
+
         let statusCode = 400;
         let errorMessage = 'Registration failed';
-        
+
         // Handle specific Firebase Auth errors
         switch (error.code) {
             case 'auth/email-already-in-use':
@@ -89,7 +110,7 @@ exports.register = async (req, res) => {
             default:
                 statusCode = 500;
         }
-        
+
         res.status(statusCode).json({
             success: false,
             error: errorMessage
@@ -101,7 +122,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        
+
         // Input validation
         if (!email || !password) {
             return res.status(400).json({
@@ -110,43 +131,90 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Sign in user
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const firebaseUser = userCredential.user;
-        
-        // Update last login time
-        await User.updateLastLogin(firebaseUser.uid);
-        
-        // Get user data from Firestore
-        const user = await User.findById(firebaseUser.uid);
-        
+        console.log('🔐 Login attempt for:', email);
+
+        // Find user in Firestore first to get UID
+        const user = await User.findByEmail(email);
+
         if (!user) {
-            return res.status(404).json({
+            console.log('❌ No user found in Firestore for email:', email);
+            return res.status(401).json({
                 success: false,
-                error: 'User not found'
+                error: 'Invalid email or password'
             });
         }
-        
-        // Generate token
-        const token = await firebaseUser.getIdToken();
-        
-        res.json({
-            success: true,
-            user: {
-                uid: user.uid,
-                email: user.email,
-                name: user.name,
-                emailVerified: user.emailVerified
-            },
-            token
-        });
-        
+
+        console.log('✅ User found in Firestore:', user.email);
+
+        try {
+            // Verify credentials against Firebase Auth
+            console.log('🔥 Verifying credentials with Firebase Auth...');
+            const userRecord = await admin.auth().getUserByEmail(email);
+
+            if (userRecord) {
+                console.log('✅ Firebase Auth user verified:', userRecord.uid);
+
+                // Check if email is verified
+                if (!userRecord.emailVerified) {
+                    console.log('❌ Email not verified for user:', userRecord.email);
+                    return res.status(403).json({
+                        success: false,
+                        error: 'Please verify your email address before logging in. Check your email for the verification link.',
+                        emailVerified: false
+                    });
+                }
+
+                // Generate custom token for the authenticated user
+                const customToken = await admin.auth().createCustomToken(userRecord.uid);
+                console.log('✅ Custom token generated');
+
+                // Update last login time in Firestore
+                await User.updateLastLogin(userRecord.uid);
+
+                console.log('✅ Login successful for:', email);
+
+                res.json({
+                    success: true,
+                    user: {
+                        uid: userRecord.uid,
+                        email: userRecord.email,
+                        name: user.name,
+                        emailVerified: userRecord.emailVerified,
+                        userType: user.userType,
+                        phoneNumber: user.phoneNumber
+                    },
+                    token: customToken,
+                    message: 'Login successful'
+                });
+            } else {
+                console.log('❌ Firebase Auth verification failed');
+                return res.status(401).json({
+                    success: false,
+                    error: 'Invalid email or password'
+                });
+            }
+
+        } catch (authError) {
+            console.error('❌ Firebase Auth error:', authError);
+
+            // If Firebase Auth fails, it means the user doesn't exist in Firebase Auth
+            // or there are other auth issues
+            if (authError.code === 'auth/user-not-found') {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Invalid email or password'
+                });
+            }
+
+            throw authError;
+        }
+
     } catch (error) {
-        console.error('Login error:', error);
-        
-        let statusCode = 401;
+        console.error('❌ Login error:', error);
+
+        let statusCode = 500;
         let errorMessage = 'Login failed';
-        
+
         // Handle specific Firebase Auth errors
         switch (error.code) {
             case 'auth/user-not-found':
@@ -168,7 +236,7 @@ exports.login = async (req, res) => {
             default:
                 statusCode = 500;
         }
-        
+
         res.status(statusCode).json({
             success: false,
             error: errorMessage
