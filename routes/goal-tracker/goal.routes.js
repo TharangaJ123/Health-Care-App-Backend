@@ -15,4 +15,11 @@ router
 
 router.post("/generate-goals", goalController.getAISuggestions)    
 
+// Steps: AI generate and toggle completion
+router.post("/:id/generate-steps", goalController.generateSteps);
+router.patch("/:id/steps/:stepId/toggle", goalController.toggleStep);
+
+// Recommendations / insights
+router.get("/:id/recommendations", goalController.getRecommendations);
+
 module.exports = router;
