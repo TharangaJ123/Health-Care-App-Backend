@@ -3,7 +3,10 @@ const { generateGoals, generateGoalSteps, generateGoalRecommendations } = requir
 
 exports.createGoal = async (req, res) => {
   try {
-    const goal = await Goal.create(req.body);
+    const userId = (req.body && (req.body.userId || req.body.uid)) || req.query.userId || null;
+    const payload = { ...req.body };
+    if (userId) payload.userId = String(userId);
+    const goal = await Goal.create(payload);
     res.status(201).json(goal);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -22,8 +25,13 @@ exports.getAISuggestions = async (req, res) => {
 
 exports.getGoals = async (req, res) => {
   try {
-    const goal = await Goal.getAll();
-    res.json(goal);
+    const qUserId = req.query && (req.query.userId || req.query.uid);
+    if (!qUserId) {
+      // Do not expose all goals when userId is not specified
+      return res.json([]);
+    }
+    const goal = await Goal.getByUserId(String(qUserId));
+    return res.json(goal);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
