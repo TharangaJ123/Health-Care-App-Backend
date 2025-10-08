@@ -7,4 +7,5 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-module.exports = db;
+// Export both admin and db
+module.exports = { admin, db };
