@@ -3,17 +3,25 @@ const { db } = require("./config/firebase");
 const cors = require('cors');
 const dotenv = require('dotenv');
 require('dotenv').config();
-const db = require("./config/firebase");
 
 const goalRoutes = require("./routes/goal-tracker/goal.routes")
 const blogRoutes = require("./routes/blog/blog.routes");
 
 const authRoutes = require('./routes/authRoutes');
 
+const appointmentRoutes = require("./routes/appointments/appointment.routes")
+const communityRoutes = require("./routes/community/community.routes")
+const doctorRoutes = require("./routes/doctors/doctor.routes")
+const activityRoutes = require("./routes/activities/activity.routes")
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use("/api/appointments", appointmentRoutes);
+app.use("/api/community", communityRoutes);
+app.use("/api/doctors", doctorRoutes);
+app.use("/api/activities", activityRoutes);
 // Routes
 app.use('/api/auth', authRoutes);
 
