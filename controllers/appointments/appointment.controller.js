@@ -33,7 +33,6 @@ exports.getAppointmentById = async (req, res) => {
 exports.updateAppointment = async (req, res) => {
   try {
     const updated = await Appointment.update(req.params.id, req.body);
-    // get full record to include computed fields
     const fresh = await Appointment.getById(req.params.id);
     try { await Activity.log({ action: 'updated', appointment: fresh || updated }); } catch (_) {}
     res.json(fresh || updated);

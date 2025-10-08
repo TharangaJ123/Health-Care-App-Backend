@@ -5,7 +5,6 @@ exports.createBlog = async (req, res) => {
   try {
     const b = req.body || {};
 
-    // Normalize tags: accept array or CSV string
     let tags = [];
     if (Array.isArray(b.tags)) {
       tags = b.tags.map((t) => String(t)).filter(Boolean);
@@ -75,7 +74,6 @@ exports.deleteBlog = async (req, res) => {
   }
 };
 
-// AI summarization for a blog
 exports.summarize = async (req, res) => {
   try {
     const { title = '', content = '' } = req.body || {};
