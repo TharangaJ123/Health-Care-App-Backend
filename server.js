@@ -22,17 +22,14 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/activities", activityRoutes);
-// Routes
 app.use('/api/auth', authRoutes);
 
-// Health check route
 app.use("/api/goals", goalRoutes);
 app.use("/api/blogs", blogRoutes);
 
 const testConnection = async () => {
   try {
     console.log("Testing Firebase connection...");
-    // Test Firebase connection
     await db.collection('test').limit(1).get();
     console.log("✅ Firebase connected successfully");
   } catch (err) {
