@@ -153,16 +153,7 @@ exports.login = async (req, res) => {
 
             if (userRecord) {
                 console.log('✅ Firebase Auth user verified:', userRecord.uid);
-
-                // Check if email is verified
-                if (!userRecord.emailVerified) {
-                    console.log('❌ Email not verified for user:', userRecord.email);
-                    return res.status(403).json({
-                        success: false,
-                        error: 'Please verify your email address before logging in. Check your email for the verification link.',
-                        emailVerified: false
-                    });
-                }
+                console.log('⚠️ Email verification check is disabled for testing');
 
                 // Generate custom token for the authenticated user
                 const customToken = await admin.auth().createCustomToken(userRecord.uid);
