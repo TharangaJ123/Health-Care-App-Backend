@@ -3,6 +3,10 @@ const { db } = require("./config/firebase");
 const cors = require('cors');
 const dotenv = require('dotenv');
 require('dotenv').config();
+const db = require("./config/firebase");
+
+const goalRoutes = require("./routes/goal-tracker/goal.routes")
+const blogRoutes = require("./routes/blog/blog.routes");
 
 const authRoutes = require('./routes/authRoutes');
 
@@ -14,6 +18,9 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // Health check route
+app.use("/api/goals", goalRoutes);
+app.use("/api/blogs", blogRoutes);
+
 const testConnection = async () => {
   try {
     console.log("Testing Firebase connection...");
