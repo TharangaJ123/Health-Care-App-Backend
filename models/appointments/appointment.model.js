@@ -1,4 +1,4 @@
-const db = require("../../config/firebase");
+const {db} = require("../../config/firebase");
 const collection = db.collection("appointments");
 
 class Appointment {
