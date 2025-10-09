@@ -3,7 +3,6 @@ const { db } = require("./config/firebase");
 const cors = require('cors');
 const dotenv = require('dotenv');
 require('dotenv').config();
-const db = require("./config/firebase");
 
 const goalRoutes = require("./routes/goal-tracker/goal.routes")
 const blogRoutes = require("./routes/blog/blog.routes");
