@@ -28,6 +28,7 @@ exports.createBlog = async (req, res) => {
       tags,
       categoryColor: String(b.categoryColor || '').trim(),
       createdAt: new Date().toISOString(),
+      userId: String(b.userId || req.query?.userId || b.uid || req.query?.uid || ''),
     };
 
     const blog = await Blog.create(data);
@@ -58,8 +59,14 @@ exports.getBlogById = async (req, res) => {
 
 exports.updateBlog = async (req, res) => {
   try {
+    const existing = await Blog.getById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Blog not found' });
+    const requester = String(req.body?.userId || req.query?.userId || req.body?.uid || req.query?.uid || '');
+    if (!existing.userId || !requester || String(existing.userId) !== requester) {
+      return res.status(403).json({ error: 'You do not have permission to edit this blog' });
+    }
     const blog = await Blog.update(req.params.id, req.body);
-    res.json(blog);
+    return res.json(blog);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -67,8 +74,14 @@ exports.updateBlog = async (req, res) => {
 
 exports.deleteBlog = async (req, res) => {
   try {
+    const existing = await Blog.getById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Blog not found' });
+    const requester = String(req.body?.userId || req.query?.userId || req.body?.uid || req.query?.uid || '');
+    if (!existing.userId || !requester || String(existing.userId) !== requester) {
+      return res.status(403).json({ error: 'You do not have permission to delete this blog' });
+    }
     const msg = await Blog.delete(req.params.id);
-    res.json(msg);
+    return res.json(msg);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
