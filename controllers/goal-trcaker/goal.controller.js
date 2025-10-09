@@ -83,14 +83,48 @@ exports.generateSteps = async (req, res) => {
       durationDays: Number(goal.durationDays || 7),
     });
 
-    const steps = (aiSteps || []).map((s, idx) => ({
+    // Normalize steps
+    const normalized = (aiSteps || []).map((s, idx) => ({
       id: String(s.id || `step-${idx + 1}`),
       title: String(s.title || `Step ${idx + 1}`),
       description: String(s.description || ''),
       order: Number(s.order || idx + 1),
       completed: false,
       completedAt: null,
-    }));
+    }))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // Compute schedule across goal duration
+    const durationDays = Math.max(1, Number(goal.durationDays || 7));
+    const stepCount = normalized.length || 1;
+    const perStepBase = Math.max(1, Math.floor(durationDays / stepCount));
+    let remainder = Math.max(0, durationDays - perStepBase * stepCount);
+
+    // Start date preference: goal.date -> goal.createdAt -> today
+    const startDateISO = (goal.date && new Date(goal.date).toString() !== 'Invalid Date')
+      ? new Date(goal.date)
+      : (goal.createdAt ? new Date(goal.createdAt) : new Date());
+
+    let cursor = new Date(startDateISO);
+    const steps = normalized.map((s, idx) => {
+      const extra = remainder > 0 ? 1 : 0; // distribute remainders to earliest steps
+      if (remainder > 0) remainder -= 1;
+      const segmentDays = perStepBase + extra;
+      const start = new Date(cursor);
+      // due date is inclusive end of segment
+      const due = new Date(start);
+      due.setDate(due.getDate() + segmentDays - 1);
+
+      // move cursor to next day after segment
+      cursor.setDate(cursor.getDate() + segmentDays);
+
+      return {
+        ...s,
+        dayOffset: Math.max(0, Math.round((start.getTime() - startDateISO.getTime()) / (24 * 3600 * 1000))),
+        startDate: start.toISOString().split('T')[0],
+        dueDate: due.toISOString().split('T')[0],
+      };
+    });
 
     await Goal.update(id, { steps });
     return res.json({ id, steps, alreadyGenerated: false });
