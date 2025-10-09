@@ -4,15 +4,23 @@ const User = require('../models/userModel');
 // User Registration
 exports.register = async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email, password, name, userType, phoneNumber, occupation } = req.body;
 
-        console.log('Registration attempt:', { email, name });
+        console.log('Registration attempt:', { email, name, userType, phoneNumber });
 
         // Input validation
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
                 error: 'Email and password are required'
+            });
+        }
+
+        // Validate userType
+        if (!userType || !['patient', 'doctor'].includes(userType)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Valid user type (patient or doctor) is required'
             });
         }
 
@@ -70,6 +78,9 @@ exports.register = async (req, res) => {
             uid: userRecord.uid,
             email: userRecord.email,
             name: name || '',
+            userType: userType,
+            phoneNumber: phoneNumber || '',
+            occupation: userType === 'doctor' ? (occupation || '') : null,
             emailVerified: false, // Will be updated when user verifies email
             verificationSent: true,
             verificationSentAt: new Date()
@@ -77,6 +88,7 @@ exports.register = async (req, res) => {
 
         const user = await User.create(userData);
         console.log('Firestore user document created:', user.id);
+        console.log('User type saved:', userType);
 
         res.status(201).json({
             success: true,
@@ -84,6 +96,9 @@ exports.register = async (req, res) => {
                 uid: user.uid,
                 email: user.email,
                 name: user.name,
+                userType: user.userType,
+                phoneNumber: user.phoneNumber,
+                occupation: user.occupation,
                 emailVerified: false,
                 verificationSent: true
             },
@@ -121,7 +136,7 @@ exports.register = async (req, res) => {
 // User Login
 exports.login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, userType } = req.body;
 
         // Input validation
         if (!email || !password) {
@@ -131,7 +146,15 @@ exports.login = async (req, res) => {
             });
         }
 
-        console.log('🔐 Login attempt for:', email);
+        // Validate userType if provided
+        if (userType && !['patient', 'doctor'].includes(userType)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid user type'
+            });
+        }
+
+        console.log('🔐 Login attempt for:', email, 'as', userType || 'any');
 
         // Find user in Firestore first to get UID
         const user = await User.findByEmail(email);
@@ -145,6 +168,15 @@ exports.login = async (req, res) => {
         }
 
         console.log('✅ User found in Firestore:', user.email);
+
+        // Validate user type matches if userType is provided
+        if (userType && user.userType !== userType) {
+            console.log(`❌ User type mismatch: Registered as ${user.userType}, attempting to login as ${userType}`);
+            return res.status(403).json({
+                success: false,
+                error: `This account is registered as a ${user.userType}. Please select the correct account type to login.`
+            });
+        }
 
         try {
             // Verify credentials against Firebase Auth
