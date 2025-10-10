@@ -1,5 +1,15 @@
+require('dotenv').config();
 const admin = require("firebase-admin");
-const serviceAccount = require("../serviceAccountKey.json");
+
+const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+if (!serviceAccountBase64) {
+  throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set.");
+}
+
+const serviceAccount = JSON.parse(
+  Buffer.from(serviceAccountBase64, "base64").toString("utf8")
+);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -7,5 +17,4 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Export both admin and db
 module.exports = { admin, db };
