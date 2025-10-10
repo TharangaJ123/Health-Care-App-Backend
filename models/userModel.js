@@ -22,6 +22,26 @@ class User {
         }
     }
 
+    // Get all users (optionally filtered by userType)
+    static async getAll(filter = {}) {
+        try {
+            let query = usersCollection;
+            if (filter.userType) {
+                query = query.where('userType', '==', filter.userType);
+            }
+            const snapshot = await query.get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error('Error getting users:', error);
+            throw new Error('Failed to get users');
+        }
+    }
+
+    // Find users by type
+    static async findByType(userType) {
+        return this.getAll({ userType });
+    }
+
     // Find user by UID
     static async findById(uid) {
         try {

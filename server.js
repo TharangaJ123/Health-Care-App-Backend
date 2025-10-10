@@ -13,6 +13,7 @@ const appointmentRoutes = require("./routes/appointments/appointment.routes")
 const communityRoutes = require("./routes/community/community.routes")
 const doctorRoutes = require("./routes/doctors/doctor.routes")
 const activityRoutes = require("./routes/activities/activity.routes")
+const userRoutes = require("./routes/users/user.routes")
 
 const app = express();
 app.use(cors());
@@ -23,6 +24,7 @@ app.use("/api/community", communityRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/activities", activityRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 app.use("/api/goals", goalRoutes);
 app.use("/api/blogs", blogRoutes);
