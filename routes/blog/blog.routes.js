@@ -13,6 +13,9 @@ router
 router
     .get("/:id", blogController.getBlogById)
     .patch("/:id", blogController.updateBlog)
-    .delete("/:id", blogController.deleteBlog);
+    .delete("/:id", blogController.deleteBlog)
+    .post("/:id/like", blogController.toggleLike)
+    .get("/:id/comments", blogController.getComments)
+    .post("/:id/comments", blogController.addComment);
 
 module.exports = router;

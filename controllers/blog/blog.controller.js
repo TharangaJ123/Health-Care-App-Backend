@@ -100,3 +100,42 @@ exports.summarize = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+// Toggle like for a blog by userId
+exports.toggleLike = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = String(req.body?.userId || req.query?.userId || '');
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const updated = await Blog.toggleLike(id, userId);
+    if (!updated) return res.status(404).json({ error: 'Blog not found' });
+    return res.json({ likes: updated.likes || [] });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Failed to toggle like' });
+  }
+};
+
+// Get comments for a blog
+exports.getComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const comments = await Blog.getComments(id);
+    return res.json(Array.isArray(comments) ? comments : []);
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Failed to get comments' });
+  }
+};
+
+// Add a new comment to a blog
+exports.addComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text, userId, userName } = req.body || {};
+    if (!text || !userId) return res.status(400).json({ error: 'text and userId are required' });
+    const saved = await Blog.addComment(id, { text, userId, userName });
+    if (!saved) return res.status(404).json({ error: 'Blog not found' });
+    return res.status(201).json(saved);
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Failed to add comment' });
+  }
+};
